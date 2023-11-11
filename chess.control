@@ -1,0 +1,5 @@
+# chess extension
+comment = 'Chess - storing and retrieving functions for chess games.'
+default_version = '1.0'
+module_pathname = '$libdir/chess'
+relocatable = true
