@@ -2,7 +2,7 @@ Run the following commands to make and install chess extension:
 ```
 >> PATH=/usr/local/pgsql/bin:$PATH
 >> 
->> cd “path_to_chess_directory”/chess/
+>> cd “path_to_this_github_directory”
 >>
 >> make
 >>
