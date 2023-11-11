@@ -1,6 +1,6 @@
 # Ignore .so files
-.so
+*.so
 # Ignore .o files
-.o
+*.o
 # Ignore .bc files
-.bc
+*.bc
