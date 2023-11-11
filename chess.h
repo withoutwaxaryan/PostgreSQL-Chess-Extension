@@ -2,19 +2,27 @@
  * chess.h
  */
 
-/* Dummy chess structure */
+/******************************STRUCTURES***************************************/
+
+
 typedef struct
 {
-  double    a;
-} Chess;
 
-/* fmgr macros chess type */
+  char* fen;
+
+} ChessBoard;
 
 
- #define ChessPGetDatum(X)  PointerGetDatum(X)
+/* fmgr macros chessboard type */
 
- #define PG_RETURN_CHESS_P(x) return ChessPGetDatum(x)
+  #define ChessBoardPGetDatum(X)  PointerGetDatum(X)
+  
+  #define PG_RETURN_CHESSBOARD_P(x) return ChessBoardPGetDatum(x)
 
+
+  #define DatumGetChessBoardP(X)  ((ChessBoard *) DatumGetPointer(X))
+ 
+  #define PG_GETARG_CHESSBOARD_P(n) DatumGetChessBoardP(PG_GETARG_DATUM(n))
 /*****************************************************************************/
 
 

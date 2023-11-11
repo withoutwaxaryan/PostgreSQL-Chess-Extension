@@ -13,6 +13,7 @@
 #include <float.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "utils/builtins.h"
 #include "libpq/pqformat.h"
@@ -23,52 +24,77 @@ PG_MODULE_MAGIC;
 
 /*****************************************************************************/
 
-static Chess *
-chess_make(double a)
-{
-  Chess *c = palloc0(sizeof(Chess));
-  c->a = a;
 
-  if (c->a == 0)
-    c->a = 0;
-  return c;
-}
-
-static Chess *
-chess_parse(char *str)
+// create a chessboard datatype with a constructor takes FEN notation as input
+static ChessBoard *
+chessboard_make(char *fen)
 {
-  return chess_make(1);
+  ChessBoard *cb = palloc0(sizeof(ChessBoard));
+  cb->fen = strdup(fen);
+  return cb;
 }
 
 
-/*****************************************************************************/
-/* Just a dummy constructor to start */
-PG_FUNCTION_INFO_V1(chess_constructor);
-Datum
-chess_constructor(PG_FUNCTION_ARGS)
+static ChessBoard *
+chessboard_parse(char *fen)
 {
-  double a = PG_GETARG_FLOAT8(0);
-  PG_RETURN_CHESS_P(chess_make(a));
+  return chessboard_make(fen);
+}
+
+static char *
+chessboard_to_str(const ChessBoard *cb)
+{
+  char *result = psprintf("%s", cb->fen);
+  return result;
 }
 
 
 /*****************************************************************************/
-PG_FUNCTION_INFO_V1(chess_in);
+
+PG_FUNCTION_INFO_V1(chessboard_constructor);
 Datum
-chess_in(PG_FUNCTION_ARGS)
+chessboard_constructor(PG_FUNCTION_ARGS)
+{
+  char *fen = PG_GETARG_CSTRING(0);
+  PG_RETURN_CHESSBOARD_P(chessboard_parse(fen));
+}
+
+
+/*********************************INPUT OUTPUT*****************************************/
+
+
+/* in out cast functions of CHESSBOARD*/
+
+PG_FUNCTION_INFO_V1(chessboard_in);
+Datum
+chessboard_in(PG_FUNCTION_ARGS)
 {
   char *str = PG_GETARG_CSTRING(0);
-  return PointerGetDatum(chess_parse(str));
+  return PointerGetDatum(chessboard_parse(str));
 }
 
-PG_FUNCTION_INFO_V1(chess_out);
+PG_FUNCTION_INFO_V1(chessboard_out);
 Datum
-chess_out(PG_FUNCTION_ARGS)
+chessboard_out(PG_FUNCTION_ARGS)
 {
-  
-  char *result = "dummyresult";
+ 
+
+  ChessBoard *cb = PG_GETARG_CHESSBOARD_P(0);
+  char *result = chessboard_to_str(cb);
+  PG_FREE_IF_COPY(cb, 0);
+
   PG_RETURN_CSTRING(result);
 }
 
+
+PG_FUNCTION_INFO_V1(chessboard_cast_from_text);
+Datum
+chessboard_cast_from_text(PG_FUNCTION_ARGS)
+{
+  text *txt = PG_GETARG_TEXT_P(0);
+  char *str = DatumGetCString(DirectFunctionCall1(textout,
+               PointerGetDatum(txt)));
+  PG_RETURN_CHESSBOARD_P(chessboard_parse(str));
+}
 
 

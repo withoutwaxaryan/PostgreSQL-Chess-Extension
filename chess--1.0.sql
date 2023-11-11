@@ -5,23 +5,32 @@
  * Input/Output
  ******************************************************************************/
 
-CREATE OR REPLACE FUNCTION chess_in(cstring)
-  RETURNS chess
+
+
+CREATE OR REPLACE FUNCTION chessboard_in(cstring)
+  RETURNS chessboard
   AS 'MODULE_PATHNAME'
   LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
-CREATE OR REPLACE FUNCTION chess_out(chess)
+CREATE OR REPLACE FUNCTION chessboard_out(chessboard)
   RETURNS cstring
   AS 'MODULE_PATHNAME'
   LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
-
-
-CREATE TYPE chess (
-  internallength = 8,
-  input          = chess_in,
-  output         = chess_out
+CREATE TYPE chessboard (
+  internallength = 8,      /* subject to change: TODO*/
+  input          = chessboard_in,
+  output         = chessboard_out
 );
+
+CREATE OR REPLACE FUNCTION chessboard(text)
+  RETURNS chessboard
+  AS 'MODULE_PATHNAME', 'chessboard_cast_from_text'
+  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE CAST (text as chessboard) WITH FUNCTION chessboard(text) AS IMPLICIT;
+
+
 
 
 
@@ -29,9 +38,9 @@ CREATE TYPE chess (
  * Constructor
  ******************************************************************************/
 
-CREATE FUNCTION chess(double precision)
-  RETURNS complex
-  AS 'MODULE_PATHNAME', 'chess_constructor'
+CREATE FUNCTION chessboard(double precision)
+  RETURNS chessboard
+  AS 'MODULE_PATHNAME', 'chessboard_constructor'
   LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
 /*****************************************************************************
