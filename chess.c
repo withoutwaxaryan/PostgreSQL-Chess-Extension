@@ -14,6 +14,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include "smallchesslib.h"
 
 #include "utils/builtins.h"
 #include "libpq/pqformat.h"
@@ -27,18 +28,26 @@ PG_MODULE_MAGIC;
 
 // create a chessboard datatype with a constructor takes FEN notation as input
 static ChessBoard *
-chessboard_make(char *fen)
+chessboard_make(SCL_Board board, char *fen)
 {
   ChessBoard *cb = palloc0(sizeof(ChessBoard));
   cb->fen = strdup(fen);
+  
+  // Copy the array elements
+  for (int i = 0; i < SCL_BOARD_STATE_SIZE; i++) {
+    cb->board[i] = board[i];
+  }
+
   return cb;
 }
 
 
 static ChessBoard *
 chessboard_parse(char *fen)
-{
-  return chessboard_make(fen);
+{ 
+  SCL_Board startState = SCL_BOARD_START_STATE;
+  SCL_boardFromFEN(startState,fen);
+  return chessboard_make(startState, fen);
 }
 
 static char *
@@ -96,5 +105,3 @@ chessboard_cast_from_text(PG_FUNCTION_ARGS)
                PointerGetDatum(txt)));
   PG_RETURN_CHESSBOARD_P(chessboard_parse(str));
 }
-
-

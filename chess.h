@@ -8,6 +8,7 @@
 typedef struct
 {
 
+  SCL_Board board;
   char* fen;
 
 } ChessBoard;
