@@ -71,9 +71,4 @@ chess_out(PG_FUNCTION_ARGS)
 }
 
 
-/*****************************************************************************/
-
-/* Just a dummy Function to start */
-
-
 
