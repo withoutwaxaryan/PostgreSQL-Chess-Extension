@@ -191,5 +191,8 @@ chessgame_cast_from_text(PG_FUNCTION_ARGS)
   PG_RETURN_CHESSGAME_P(chessgame_parse(str));
 }
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 56dd3a934f623224c52fd22d1b131240cd6061bd
