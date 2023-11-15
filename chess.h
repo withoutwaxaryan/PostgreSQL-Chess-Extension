@@ -13,6 +13,14 @@ typedef struct
 
 } ChessBoard;
 
+typedef struct
+{
+
+  SCL_Record record;
+  char* pgn;
+
+} ChessGame;
+
 
 /* fmgr macros chessboard type */
 
@@ -24,6 +32,19 @@ typedef struct
   #define DatumGetChessBoardP(X)  ((ChessBoard *) DatumGetPointer(X))
  
   #define PG_GETARG_CHESSBOARD_P(n) DatumGetChessBoardP(PG_GETARG_DATUM(n))
+/*****************************************************************************/
+
+
+/* fmgr macros chessboard type */
+
+  #define ChessGamePGetDatum(X)  PointerGetDatum(X)
+  
+  #define PG_RETURN_CHESSGAME_P(x) return ChessGamePGetDatum(x)
+
+
+  #define DatumGetChessGameP(X)  ((ChessGame *) DatumGetPointer(X))
+ 
+  #define PG_GETARG_CHESSGAME DatumGetChessGameP(PG_GETARG_DATUM(n))
 /*****************************************************************************/
 
 
