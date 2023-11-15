@@ -105,3 +105,91 @@ chessboard_cast_from_text(PG_FUNCTION_ARGS)
                PointerGetDatum(txt)));
   PG_RETURN_CHESSBOARD_P(chessboard_parse(str));
 }
+
+
+/*****************************************************************************/
+
+
+// create a chessboard datatype with a constructor takes FEN notation as input
+static ChessGame *
+chessgame_make(SCL_Record record, char *pgn)
+{
+  ChessGame *cb = palloc0(sizeof(ChessGame));
+  cb->pgn = strdup(pgn);
+  
+  // Copy the array elements
+  for (int i = 0; i < SCL_RECORD_MAX_LENGTH; i++) {
+    cb->record[i] = record[i];
+  }
+
+  return cb;
+}
+
+
+static ChessGame *
+chessgame_parse(char *pgn)
+{
+  SCL_Record record;
+  SCL_recordInit(record);
+  SCL_recordFromPGN(record, pgn);
+  return chessgame_make(record, pgn);
+}
+
+static char *
+chessgame_to_str(const ChessGame *cb)
+{
+  char *result = psprintf("%s", cb->pgn);
+  return result;
+}
+
+
+/*****************************************************************************/
+
+PG_FUNCTION_INFO_V1(chessgame_constructor);
+Datum
+chessgame_constructor(PG_FUNCTION_ARGS)
+{
+  char *pgn = PG_GETARG_CSTRING(0);
+  PG_RETURN_CHESSGAME_P(chessgame_parse(pgn));
+}
+
+
+/*********************************INPUT OUTPUT*****************************************/
+
+
+/* in out cast functions of chessgame */
+
+PG_FUNCTION_INFO_V1(chessgame_in);
+Datum
+chessgame_in(PG_FUNCTION_ARGS)
+{
+  char *str = PG_GETARG_CSTRING(0);
+  return PointerGetDatum(chessgame_parse(str));
+}
+
+PG_FUNCTION_INFO_V1(chessgame_out);
+Datum
+chessgame_out(PG_FUNCTION_ARGS)
+{
+ 
+
+  ChessGame *cb = PG_GETARG_CHESSGAME_P(0);
+  char *result = chessgame_to_str(cb);
+  PG_FREE_IF_COPY(cb, 0);
+
+  PG_RETURN_CSTRING(result);
+}
+
+
+PG_FUNCTION_INFO_V1(chessgame_cast_from_text);
+Datum
+chessgame_cast_from_text(PG_FUNCTION_ARGS)
+{
+  text *txt = PG_GETARG_TEXT_P(0);
+  char *str = DatumGetCString(DirectFunctionCall1(textout,
+               PointerGetDatum(txt)));
+  PG_RETURN_CHESSGAME_P(chessgame_parse(str));
+}
+
+
+
