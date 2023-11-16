@@ -53,7 +53,10 @@ chessboard_parse(char *fen)
 static char *
 chessboard_to_str(const ChessBoard *cb)
 {
-  char *result = psprintf("%s", cb->fen);
+  //char *result = psprintf("%s", cb->fen);
+
+  char *result = palloc0(sizeof(char) * SCL_FEN_MAX_LENGTH);
+  SCL_boardToFEN(cb->board, result);
   return result;
 }
 
@@ -191,8 +194,3 @@ chessgame_cast_from_text(PG_FUNCTION_ARGS)
   PG_RETURN_CHESSGAME_P(chessgame_parse(str));
 }
 
-<<<<<<< HEAD
-
-
-=======
->>>>>>> 56dd3a934f623224c52fd22d1b131240cd6061bd
