@@ -679,7 +679,7 @@ void SCL_printBoardSimple(
   uint8_t format);
 
 void SCL_printSquareUTF8(uint8_t square, SCL_PutCharFunction putCharFunc);
-void SCL_printPGN(SCL_Record r, SCL_PutCharFunction putCharFunc,
+void SCL_printPGN(SCL_Record r, char *dest,
   SCL_Board initialState);
 
 /**
@@ -3393,9 +3393,10 @@ uint8_t SCL_boardMoveResetsCount(SCL_Board board,
     board[squareTo] != '.';
 }
 
-void SCL_printPGN(SCL_Record r, SCL_PutCharFunction putCharFunc,
+void SCL_printPGN(SCL_Record r, char *dest,
   SCL_Board initialState)
 {
+  #define putCharFunc(c) { *dest = (c); dest++; }
   if (SCL_recordLength(r) == 0)
     return;
 
@@ -3528,6 +3529,7 @@ void SCL_printPGN(SCL_Record r, SCL_PutCharFunction putCharFunc,
       
     putCharFunc(' ');
   }
+  #undef put
 }
 
 void SCL_recordCopy(SCL_Record recordFrom, SCL_Record recordTo)
