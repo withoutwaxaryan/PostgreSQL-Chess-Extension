@@ -18,6 +18,7 @@ CREATE OR REPLACE FUNCTION chessboard_out(chessboard)
   LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
 CREATE TYPE chessboard (
+  internallength = 69,
   input          = chessboard_in,
   output         = chessboard_out
 );
@@ -46,6 +47,7 @@ CREATE OR REPLACE FUNCTION chessgame_out(chessgame)
   LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
 CREATE TYPE chessgame (
+  internallength = 512,
   input          = chessgame_in,
   output         = chessgame_out
 );
