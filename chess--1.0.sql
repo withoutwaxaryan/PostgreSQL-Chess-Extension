@@ -78,12 +78,22 @@ CREATE FUNCTION chessgame(double precision)
   AS 'MODULE_PATHNAME', 'chessgame_constructor'
   LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
-/*****************************************************************************
- * Accessing values
- *****************************************************************************/
-
 
 /******************************************************************************
- * Operators
+ * Functions
  ******************************************************************************/
+
+/*
+getBoard(chessgame, integer) -> chessboard: Return the board state
+at a given half-move (A full move is counted only when both players
+have played). The integer parameter indicates the count of half
+moves since the beginning of the game. A 0 value of this parameter
+means the initial board state, i.e.,(
+rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1).
+*/
+
+CREATE FUNCTION getBoard(chessgame, integer)
+  RETURNS chessboard
+  AS 'MODULE_PATHNAME', 'getBoard'
+  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 

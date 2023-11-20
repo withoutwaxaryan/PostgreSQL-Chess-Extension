@@ -162,3 +162,24 @@ Datum chessgame_cast_from_text(PG_FUNCTION_ARGS)
                                                   PointerGetDatum(txt)));
   PG_RETURN_CHESSGAME_P(chessgame_parse(str));
 }
+
+
+/*********************************Functions*****************************/
+
+PG_FUNCTION_INFO_V1(getBoard);
+Datum
+getBoard(PG_FUNCTION_ARGS)
+{
+  ChessGame *cg = PG_GETARG_CHESSGAME_P(0);
+  int halfMove = PG_GETARG_INT32(1);
+
+  
+  ChessBoard *cb = palloc0(sizeof(ChessBoard));
+
+  SCL_recordApply(cg->record, cb ,halfMove);
+
+  PG_FREE_IF_COPY(cg, 0);
+
+  PG_RETURN_CSTRING(cb);
+}
+
