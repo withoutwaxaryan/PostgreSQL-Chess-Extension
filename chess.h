@@ -29,7 +29,7 @@ typedef struct
 #define PG_GETARG_CHESSBOARD_P(n) DatumGetChessBoardP(PG_GETARG_DATUM(n))
 /*****************************************************************************/
 
-/* fmgr macros chessboard type */
+/* fmgr macros chessgame type */
 
 #define ChessGamePGetDatum(X) PointerGetDatum(X)
 

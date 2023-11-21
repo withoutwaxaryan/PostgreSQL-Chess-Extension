@@ -97,3 +97,13 @@ CREATE FUNCTION getBoard(chessgame, integer)
   AS 'MODULE_PATHNAME', 'getBoard'
   LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
+
+/**
+  getFirstMoves(chessgame, integer) -> chessgame: Returns the
+  chessgame truncated to its first N half-moves. This function may also
+  be called getOpening(...). Again the integer parameter is zero based.
+*/
+CREATE FUNCTION getFirstMoves(chessgame, integer)
+  RETURNS chessgame
+  AS 'MODULE_PATHNAME', 'getFirstMoves'
+  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;

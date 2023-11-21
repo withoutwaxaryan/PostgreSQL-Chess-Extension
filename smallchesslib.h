@@ -3529,7 +3529,7 @@ void SCL_printPGN(SCL_Record r, char *dest,
       
     putCharFunc(' ');
   }
-  #undef put
+  #undef putCharFunc
 }
 
 void SCL_recordCopy(SCL_Record recordFrom, SCL_Record recordTo)
