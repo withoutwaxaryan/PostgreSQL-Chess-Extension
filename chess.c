@@ -199,3 +199,35 @@ Datum getFirstMoves(PG_FUNCTION_ARGS)
 
   PG_RETURN_CHESSGAME_P(cg);
 }
+
+
+PG_FUNCTION_INFO_V1(hasBoard);
+Datum hasBoard(PG_FUNCTION_ARGS)
+{
+  ChessGame *cg = PG_GETARG_CHESSGAME_P(0);
+  ChessBoard *cb = PG_GETARG_CHESSBOARD_P(1);
+  int halfMove = PG_GETARG_INT32(2);
+
+  ChessBoard *temp = palloc0(sizeof(ChessBoard));
+
+  for (int i = 0; i <= halfMove; i++)
+  {
+
+    //I couldnt call getboard because compiler complained about function args.
+    SCL_recordApply(cg->record, temp, i); // maybe not correct way of doing it.
+    
+    char *str = chessboard_to_str(temp);
+    if (strcmp(str, chessboard_to_str(cb)) == 0) // not the whole board but first part should be checked.
+    {
+      PG_FREE_IF_COPY(cg, 0);
+      PG_FREE_IF_COPY(cb, 1);
+      PG_RETURN_BOOL(true);
+    }
+  }
+
+
+  PG_FREE_IF_COPY(cg, 0);
+  PG_FREE_IF_COPY(cb, 1);
+
+  PG_RETURN_BOOL(false);
+}
