@@ -164,6 +164,14 @@ Datum chessgame_cast_from_text(PG_FUNCTION_ARGS)
 }
 
 /*********************************Functions*****************************/
+/*
+getBoard(chessgame, integer) -> chessboard: Return the board state
+at a given half-move (A full move is counted only when both players
+have played). The integer parameter indicates the count of half
+moves since the beginning of the game. A 0 value of this parameter
+means the initial board state, i.e.,(
+rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1).
+*/
 
 PG_FUNCTION_INFO_V1(getBoard);
 Datum getBoard(PG_FUNCTION_ARGS)
@@ -179,6 +187,13 @@ Datum getBoard(PG_FUNCTION_ARGS)
 
   PG_RETURN_CHESSBOARD_P(cb);
 }
+
+
+/**
+  getFirstMoves(chessgame, integer) -> chessgame: Returns the
+  chessgame truncated to its first N half-moves. This function may also
+  be called getOpening(...). Again the integer parameter is zero based.
+*/
 
 PG_FUNCTION_INFO_V1(getFirstMoves);
 Datum getFirstMoves(PG_FUNCTION_ARGS)
@@ -200,6 +215,13 @@ Datum getFirstMoves(PG_FUNCTION_ARGS)
   PG_RETURN_CHESSGAME_P(cg);
 }
 
+/*
+hasBoard(chessgame, chessboard, integer) -> bool: Returns true if
+the chessgame contains the given board state in its first N
+half-moves. Only compare the state of the pieces and not compare
+the move count, castling right, en passant pieces, ...
+
+*/
 
 PG_FUNCTION_INFO_V1(hasBoard);
 Datum hasBoard(PG_FUNCTION_ARGS)
@@ -214,6 +236,7 @@ Datum hasBoard(PG_FUNCTION_ARGS)
   {
 
     //I couldnt call getboard because compiler complained about function args.
+
     SCL_recordApply(cg->record, temp, i); // maybe not correct way of doing it.
     
     char *str = chessboard_to_str(temp);
@@ -231,3 +254,57 @@ Datum hasBoard(PG_FUNCTION_ARGS)
 
   PG_RETURN_BOOL(false);
 }
+
+/*
+hasOpening(chessgame, chessgame) -> bool: Returns true if the first
+chess game starts with the exact same set of moves as the second
+chess game. The second parameter should not be a full game, but
+should only contain the opening moves that we want to check for,
+which can be of any length, i.e., m half-moves.
+*/
+
+PG_FUNCTION_INFO_V1(hasOpening);
+Datum hasOpening(PG_FUNCTION_ARGS)
+{
+  // Get chessgames from arguments
+  ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
+  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
+
+  // new chessgame variable
+  ChessGame *cg1 = palloc0(sizeof(ChessGame));
+  SCL_recordCopy(chessgame1->record, cg1->record);
+
+  // new chessgame variable
+  ChessGame *cg2 = palloc0(sizeof(ChessGame));
+  SCL_recordCopy(chessgame2->record, cg2->record);
+
+  // Get number of half moves of the 1st chess game
+  uint16_t length1 = SCL_recordLength(cg1->record);
+
+  // Get number of half moves of the 2nd chess game
+  uint16_t length2 = SCL_recordLength(cg2->record);
+
+  // Get the string of 1st chess game truncated to opening number of half moves
+  // of the 2nd chess game
+  int shouldContinue = 1;
+  for (uint16_t i = 0; i < (length1 - length2) && shouldContinue; i++)
+  {
+    shouldContinue = SCL_recordRemoveLast(cg1->record);
+  }
+
+  // Check if the chessgames match
+  if (strcmp(chessgame_to_str(cg2), chessgame_to_str(cg1)) == 0)
+    {
+      PG_FREE_IF_COPY(chessgame1, 0);
+      PG_FREE_IF_COPY(chessgame2, 1);
+
+      PG_RETURN_BOOL(true);
+    }
+
+PG_FREE_IF_COPY(chessgame1, 0);
+PG_FREE_IF_COPY(chessgame2, 1);
+
+PG_RETURN_BOOL(false);
+
+}
+
