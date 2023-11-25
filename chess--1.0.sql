@@ -108,8 +108,13 @@ CREATE FUNCTION getFirstMoves(chessgame, integer)
   AS 'MODULE_PATHNAME', 'getFirstMoves'
   LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
+CREATE FUNCTION hasBoard(chessgame, chessboard, integer)
+  RETURNS boolean
+  AS 'MODULE_PATHNAME', 'hasBoard'
+  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
-  CREATE FUNCTION hasBoard(chessgame, chessboard, integer)
+
+CREATE FUNCTION hasOpening(chessgame, chessgame)
     RETURNS boolean
-    AS 'MODULE_PATHNAME', 'hasBoard'
+    AS 'MODULE_PATHNAME', 'hasOpening'
     LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
