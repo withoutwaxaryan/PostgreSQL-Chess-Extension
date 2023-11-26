@@ -292,19 +292,16 @@ Datum hasOpening(PG_FUNCTION_ARGS)
     shouldContinue = SCL_recordRemoveLast(cg1->record);
   }
 
-  // Check if the chessgames match
-  if (strcmp(chessgame_to_str(cg2), chessgame_to_str(cg1)) == 0)
-    {
-      PG_FREE_IF_COPY(chessgame1, 0);
-      PG_FREE_IF_COPY(chessgame2, 1);
+ // Compare the string representations of the two chess games
+  bool value = (strcmp(chessgame_to_str(cg2), chessgame_to_str(cg1)) == 0);
 
-      PG_RETURN_BOOL(true);
-    }
+  pfree(cg1);
+  pfree(cg2);
 
-PG_FREE_IF_COPY(chessgame1, 0);
-PG_FREE_IF_COPY(chessgame2, 1);
+  PG_FREE_IF_COPY(chessgame1, 0);
+  PG_FREE_IF_COPY(chessgame2, 1);
 
-PG_RETURN_BOOL(false);
+  PG_RETURN_BOOL(value);
 
 }
 
