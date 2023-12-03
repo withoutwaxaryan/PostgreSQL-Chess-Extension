@@ -115,6 +115,86 @@ CREATE FUNCTION hasBoard(chessgame, chessboard, integer)
 
 
 CREATE FUNCTION hasOpening(chessgame, chessgame)
-    RETURNS boolean
-    AS 'MODULE_PATHNAME', 'hasOpening'
-    LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+  RETURNS boolean
+  AS 'MODULE_PATHNAME', 'hasOpening'
+  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+
+  /******************************************************************************
+ * Operator Functions
+ ******************************************************************************/
+
+CREATE FUNCTION hasOpening_lt(chessgame, chessgame)
+  RETURNS boolean
+  AS 'MODULE_PATHNAME', 'hasOpening_lt'
+  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION hasOpening_le(chessgame, chessgame)
+  RETURNS boolean
+  AS 'MODULE_PATHNAME', 'hasOpening_le'
+  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+  CREATE FUNCTION hasOpening_eq(chessgame, chessgame)
+  RETURNS boolean
+  AS 'MODULE_PATHNAME', 'hasOpening_eq'
+  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+  CREATE FUNCTION hasOpening_ge(chessgame, chessgame)
+  RETURNS boolean
+  AS 'MODULE_PATHNAME', 'hasOpening_ge'
+  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+  CREATE FUNCTION hasOpening_gt(chessgame, chessgame)
+  RETURNS boolean
+  AS 'MODULE_PATHNAME', 'hasOpening_gt'
+  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+-- Support Function
+CREATE FUNCTION chessgame_hasOpening_cmp(chessgame, chessgame)
+  RETURNS int4
+  AS 'MODULE_PATHNAME', 'chessgame_hasOpening_cmp'
+  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+
+  /******************************************************************************
+ * Operators & Operator Class
+ ******************************************************************************/
+
+CREATE OPERATOR < (
+   leftarg = chessgame, rightarg = chessgame, procedure = hasOpening_lt
+
+  --TODO : commutator = > , negator = >= ,
+  --  restrict = scalarltsel, join = scalarltjoinsel
+);
+
+CREATE OPERATOR <= (
+   leftarg = chessgame, rightarg = chessgame, procedure = hasOpening_le
+  --  commutator = >=
+);
+
+CREATE OPERATOR = (
+   leftarg = chessgame, rightarg = chessgame, procedure = hasOpening_eq
+  --  commutator = =
+);
+
+CREATE OPERATOR >= (
+   leftarg = chessgame, rightarg = chessgame, procedure = hasOpening_ge
+  --  commutator = <=
+);
+
+CREATE OPERATOR > (
+   leftarg = chessgame, rightarg = chessgame, procedure = hasOpening_gt
+);
+
+
+CREATE OPERATOR CLASS chessgame_hasOpening_ops
+  DEFAULT FOR TYPE chessgame USING btree AS
+      OPERATOR        1       < ,
+      OPERATOR        2       <= ,
+      OPERATOR        3       = ,
+      OPERATOR        4       >= ,
+      OPERATOR        5       > ,
+      FUNCTION        1       chessgame_hasOpening_cmp(chessgame, chessgame);
+
+
+  

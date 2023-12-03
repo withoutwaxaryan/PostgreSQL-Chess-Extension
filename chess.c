@@ -72,7 +72,8 @@ PG_FUNCTION_INFO_V1(chessboard_in);
 Datum chessboard_in(PG_FUNCTION_ARGS)
 {
   char *str = PG_GETARG_CSTRING(0);
-  return PointerGetDatum(chessboard_parse(str));
+  // return PointerGetDatum(chessboard_parse(str));
+  PG_RETURN_CHESSBOARD_P(chessboard_parse(str));
 }
 
 PG_FUNCTION_INFO_V1(chessboard_out);
@@ -92,12 +93,13 @@ Datum chessboard_cast_from_text(PG_FUNCTION_ARGS)
   text *txt = PG_GETARG_TEXT_P(0);
   char *str = DatumGetCString(DirectFunctionCall1(textout,
                                                   PointerGetDatum(txt)));
+  // PG_RETURN_CHESSBOARD_P(chessboard_parse(str));
   PG_RETURN_CHESSBOARD_P(chessboard_parse(str));
 }
 
 /*****************************************************************************/
 
-// create a chessboard datatype with a constructor takes FEN notation as input
+// create a chessgame datatype with a constructor takes SAN notation as input
 static ChessGame *
 chessgame_make(SCL_Record record, char *pgn)
 {
@@ -130,6 +132,7 @@ PG_FUNCTION_INFO_V1(chessgame_constructor);
 Datum chessgame_constructor(PG_FUNCTION_ARGS)
 {
   char *pgn = PG_GETARG_CSTRING(0);
+  // PG_RETURN_CHESSGAME_P(chessgame_parse(pgn));
   PG_RETURN_CHESSGAME_P(chessgame_parse(pgn));
 }
 
@@ -141,7 +144,8 @@ PG_FUNCTION_INFO_V1(chessgame_in);
 Datum chessgame_in(PG_FUNCTION_ARGS)
 {
   char *str = PG_GETARG_CSTRING(0);
-  return PointerGetDatum(chessgame_parse(str));
+  // return PointerGetDatum(chessgame_parse(str));
+  PG_RETURN_CHESSGAME_P(chessgame_parse(str));
 }
 
 PG_FUNCTION_INFO_V1(chessgame_out);
@@ -160,6 +164,7 @@ Datum chessgame_cast_from_text(PG_FUNCTION_ARGS)
   text *txt = PG_GETARG_TEXT_P(0);
   char *str = DatumGetCString(DirectFunctionCall1(textout,
                                                   PointerGetDatum(txt)));
+  // PG_RETURN_CHESSGAME_P(chessgame_parse(str));
   PG_RETURN_CHESSGAME_P(chessgame_parse(str));
 }
 
@@ -255,6 +260,45 @@ Datum hasBoard(PG_FUNCTION_ARGS)
   PG_RETURN_BOOL(false);
 }
 
+
+//INTERNAL FUNCTION
+static int hasOpening_cmp_internal(ChessGame *chessgame1, ChessGame *chessgame2);
+// Implementation of the internal function
+static int hasOpening_cmp_internal(ChessGame *chessgame1, ChessGame *chessgame2)
+{
+    int result;
+    int value;
+
+    // new chessgame variable
+    ChessGame *cg1 = palloc0(sizeof(ChessGame));
+    SCL_recordCopy(chessgame1->record, cg1->record);
+
+    // new chessgame variable
+    ChessGame *cg2 = palloc0(sizeof(ChessGame));
+    SCL_recordCopy(chessgame2->record, cg2->record);
+
+    // Compare the string representations of the two chess games
+    value = strcmp(chessgame_to_str(cg1), chessgame_to_str(cg2));
+
+    if (value < 0)
+    {
+       result = -1;
+    }
+    else if (value == 0)
+    {
+       result = 0;
+    }
+    else if (value > 0)
+    {
+      result = 1;
+    }
+
+    pfree(cg1);
+    pfree(cg2);
+    
+    return result;
+}
+
 /*
 hasOpening(chessgame, chessgame) -> bool: Returns true if the first
 chess game starts with the exact same set of moves as the second
@@ -292,8 +336,8 @@ Datum hasOpening(PG_FUNCTION_ARGS)
     shouldContinue = SCL_recordRemoveLast(cg1->record);
   }
 
- // Compare the string representations of the two chess games
-  bool value = (strcmp(chessgame_to_str(cg2), chessgame_to_str(cg1)) == 0);
+  // Compare the string representations of the two chess games
+  bool value = (strcmp(chessgame_to_str(cg1), chessgame_to_str(cg2)) == 0);
 
   pfree(cg1);
   pfree(cg2);
@@ -305,3 +349,67 @@ Datum hasOpening(PG_FUNCTION_ARGS)
 
 }
 
+ /******************************************************************************
+ * B-Tree related functions
+ ******************************************************************************/
+
+PG_FUNCTION_INFO_V1(hasOpening_lt);
+Datum hasOpening_lt(PG_FUNCTION_ARGS)
+{
+	ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
+  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
+
+	PG_RETURN_BOOL(hasOpening_cmp_internal(chessgame1, chessgame2) < 0);
+}
+
+PG_FUNCTION_INFO_V1(hasOpening_le);
+Datum hasOpening_le(PG_FUNCTION_ARGS)
+{
+	ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
+  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
+
+	PG_RETURN_BOOL(hasOpening_cmp_internal(chessgame1, chessgame2) <= 0);
+}
+
+PG_FUNCTION_INFO_V1(hasOpening_eq);
+Datum hasOpening_eq(PG_FUNCTION_ARGS)
+{
+	ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
+  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
+
+	PG_RETURN_BOOL(hasOpening_cmp_internal(chessgame1, chessgame2) == 0);
+}
+
+PG_FUNCTION_INFO_V1(hasOpening_ge);
+Datum hasOpening_ge(PG_FUNCTION_ARGS)
+{
+	ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
+  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
+
+	PG_RETURN_BOOL(hasOpening_cmp_internal(chessgame1, chessgame2) >= 0);
+}
+
+PG_FUNCTION_INFO_V1(hasOpening_gt);
+Datum hasOpening_gt(PG_FUNCTION_ARGS)
+{
+	ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
+  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
+
+	PG_RETURN_BOOL(hasOpening_cmp_internal(chessgame1, chessgame2) > 0);
+}
+
+
+PG_FUNCTION_INFO_V1(chessgame_hasOpening_cmp);
+Datum chessgame_hasOpening_cmp(PG_FUNCTION_ARGS)
+{
+    int result;
+    ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
+    ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
+
+    result = hasOpening_cmp_internal(chessgame1, chessgame2);
+
+    PG_FREE_IF_COPY(chessgame1, 0);
+    PG_FREE_IF_COPY(chessgame2, 1);
+
+    PG_RETURN_INT32(result);
+}
