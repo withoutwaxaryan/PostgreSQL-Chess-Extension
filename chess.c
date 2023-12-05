@@ -7,18 +7,19 @@
  *
  * Author: Berat Furkan Kocak (berat.kocak@ulb.be), David ... , Celia ... , Aryan ...
  */
-
 #include <stdio.h>
 #include <postgres.h>
 #include <float.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <catalog/pg_type.h>
+#include <access/gin.h>
+#include <access/stratnum.h>
+#include <utils/builtins.h>
+#include <libpq/pqformat.h>
+
 #include "smallchesslib.h"
-
-#include "utils/builtins.h"
-#include "libpq/pqformat.h"
-
 #include "chess.h"
 
 PG_MODULE_MAGIC;
@@ -188,7 +189,6 @@ Datum getBoard(PG_FUNCTION_ARGS)
   PG_RETURN_CHESSBOARD_P(cb);
 }
 
-
 /**
   getFirstMoves(chessgame, integer) -> chessgame: Returns the
   chessgame truncated to its first N half-moves. This function may also
@@ -215,6 +215,23 @@ Datum getFirstMoves(PG_FUNCTION_ARGS)
   PG_RETURN_CHESSGAME_P(cg);
 }
 
+bool chessgameContainsChessboard(ChessGame *cg, ChessBoard *cb, int halfMoves)
+{
+  ChessBoard *temp = palloc0(sizeof(ChessBoard));
+
+  for (uint16_t i = 0; i <= halfMoves; i++)
+  {
+    SCL_recordApply(cg->record, temp->board, i);
+
+    uint32_t hash = SCL_boardHash32(temp->board);
+    if (hash == SCL_boardHash32(cb->board))
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
 /*
 hasBoard(chessgame, chessboard, integer) -> bool: Returns true if
 the chessgame contains the given board state in its first N
@@ -230,29 +247,41 @@ Datum hasBoard(PG_FUNCTION_ARGS)
   ChessBoard *cb = PG_GETARG_CHESSBOARD_P(1);
   int halfMove = PG_GETARG_INT32(2);
 
-  ChessBoard *temp = palloc0(sizeof(ChessBoard));
-
-  for (int i = 0; i <= halfMove; i++)
-  {
-
-    //I couldnt call getboard because compiler complained about function args.
-
-    SCL_recordApply(cg->record, temp, i); // maybe not correct way of doing it.
-    
-    char *str = chessboard_to_str(temp);
-    if (strcmp(str, chessboard_to_str(cb)) == 0) // not the whole board but first part should be checked.
-    {
-      PG_FREE_IF_COPY(cg, 0);
-      PG_FREE_IF_COPY(cb, 1);
-      PG_RETURN_BOOL(true);
-    }
-  }
-
-
+  bool result = chessgameContainsChessboard(cg, cb, halfMove);
   PG_FREE_IF_COPY(cg, 0);
   PG_FREE_IF_COPY(cb, 1);
 
-  PG_RETURN_BOOL(false);
+  PG_RETURN_BOOL(result);
+}
+
+bool chessgame_contains_chessgame(ChessGame *c1, ChessGame *c2)
+{
+  // Get number of half moves of the 1st chess game
+  uint16_t length1 = SCL_recordLength(c1->record);
+
+  // Get number of half moves of the 2nd chess game
+  uint16_t length2 = SCL_recordLength(c2->record);
+
+  // Determine minimum length betwenn these two chess games
+  uint8_t minLength = (length1 < length2) ? length1 : length2;
+
+  // Check if the chessgame matches with minLength
+  for (uint16_t i = 0; i < minLength; i++)
+  {
+    uint8_t squareFrom1;
+    uint8_t squareTo1;
+    uint8_t squareFrom2;
+    uint8_t squareTo2;
+    char promotedPiece;
+    uint8_t mov1 = SCL_recordGetMove(c1->record, i, &squareFrom1, &squareTo1, &promotedPiece);
+    uint8_t mov2 = SCL_recordGetMove(c2->record, i, &squareFrom2, &squareTo2, &promotedPiece);
+
+    if (squareFrom1 != squareFrom2 || squareTo1 != squareTo2)
+    {
+      return false;
+    }
+  }
+  return true;
 }
 
 /*
@@ -270,38 +299,127 @@ Datum hasOpening(PG_FUNCTION_ARGS)
   ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
   ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
 
-  // new chessgame variable
-  ChessGame *cg1 = palloc0(sizeof(ChessGame));
-  SCL_recordCopy(chessgame1->record, cg1->record);
-
-  // new chessgame variable
-  ChessGame *cg2 = palloc0(sizeof(ChessGame));
-  SCL_recordCopy(chessgame2->record, cg2->record);
-
-  // Get number of half moves of the 1st chess game
-  uint16_t length1 = SCL_recordLength(cg1->record);
-
-  // Get number of half moves of the 2nd chess game
-  uint16_t length2 = SCL_recordLength(cg2->record);
-
-  // Get the string of 1st chess game truncated to opening number of half moves
-  // of the 2nd chess game
-  int shouldContinue = 1;
-  for (uint16_t i = 0; i < (length1 - length2) && shouldContinue; i++)
-  {
-    shouldContinue = SCL_recordRemoveLast(cg1->record);
-  }
-
- // Compare the string representations of the two chess games
-  bool value = (strcmp(chessgame_to_str(cg2), chessgame_to_str(cg1)) == 0);
-
-  pfree(cg1);
-  pfree(cg2);
-
+  bool result = chessgame_contains_chessgame(chessgame1, chessgame2);
   PG_FREE_IF_COPY(chessgame1, 0);
   PG_FREE_IF_COPY(chessgame2, 1);
-
-  PG_RETURN_BOOL(value);
-
+  PG_RETURN_BOOL(result);
 }
 
+PG_FUNCTION_INFO_V1(chessgame_gin_extract_value);
+Datum chessgame_gin_extract_value(PG_FUNCTION_ARGS)
+{
+  ChessGame *cg = PG_GETARG_CHESSGAME_P(0);
+  int32 *nkeys = (int32 *)PG_GETARG_POINTER(1);
+  bool **nullFlags = (bool **)PG_GETARG_POINTER(2);
+  Datum *entries = NULL;
+  *nullFlags = NULL; // Assume all keys are non-null
+
+  if (PG_ARGISNULL(0))
+  {
+    *nkeys = 0;
+    PG_RETURN_NULL();
+  }
+
+  uint16_t length = SCL_recordLength(cg->record);
+  if (length > 0)
+  {
+    entries = (Datum *)palloc(sizeof(Datum) * length + 1);
+    *nkeys = length + 1;
+  }
+  for (uint16_t i = 0; i <= length; ++i)
+  {
+    ChessBoard *cb = palloc0(sizeof(ChessBoard));
+    SCL_recordApply(cg->record, cb->board, i);
+    entries[i] = ChessBoardPGetDatum(cb);
+  }
+
+  PG_RETURN_POINTER(entries);
+}
+
+PG_FUNCTION_INFO_V1(chessgame_gin_extract_query);
+Datum chessgame_gin_extract_query(PG_FUNCTION_ARGS)
+{
+  Datum query = PG_GETARG_DATUM(0);
+  int32 *nkeys = (int32 *)PG_GETARG_POINTER(1);
+  StrategyNumber strategy = PG_GETARG_UINT16(2);
+  bool **pmatch = (bool **)PG_GETARG_POINTER(3);
+  Pointer **extra_data = (Pointer **)PG_GETARG_POINTER(4);
+  bool **nullFlags = (bool **)PG_GETARG_POINTER(5);
+  int32 *searchMode = (int32 *)PG_GETARG_POINTER(6);
+
+  *nullFlags = NULL; // Assume all keys are non-null
+  *searchMode = GIN_SEARCH_MODE_DEFAULT;
+
+  if (PG_ARGISNULL(0))
+  {
+    *nkeys = 0;
+    PG_RETURN_NULL();
+  }
+
+  switch (strategy)
+  {
+  case RTContainsStrategyNumber:
+  {
+    *nkeys = 1;
+    Datum *states = (Datum *)palloc(sizeof(Datum));
+    states[0] = query;
+    // For simplicity, assume all keys require exact match (no partial match)
+    *pmatch = (bool *)palloc(sizeof(bool));
+    **pmatch = false;
+
+    // Assume no extra data is needed for this example
+    *extra_data = NULL;
+
+    // Assume no null flags for this example
+
+    // Assume default search mode
+    *searchMode = GIN_SEARCH_MODE_DEFAULT;
+
+    PG_RETURN_POINTER(states);
+  }
+  break;
+  default:
+    elog(ERROR, "chessgame_gin_extract_query: unknown strategy number: %d", strategy);
+  }
+
+  PG_RETURN_NULL();
+}
+
+PG_FUNCTION_INFO_V1(chessgame_compare);
+Datum chessgame_compare(PG_FUNCTION_ARGS)
+{
+  ChessGame *a = PG_GETARG_CHESSGAME_P(0);
+  ChessGame *b = PG_GETARG_CHESSGAME_P(1);
+
+  int result = DatumGetInt32(SCL_recordLength(a->record) - SCL_recordLength(b->record));
+
+  PG_FREE_IF_COPY(a, 0);
+  PG_FREE_IF_COPY(b, 1);
+  PG_RETURN_INT32(result);
+}
+
+PG_FUNCTION_INFO_V1(chessgame_gin_triconsistent);
+Datum chessgame_gin_triconsistent(PG_FUNCTION_ARGS)
+{
+  GinTernaryValue *check = (GinTernaryValue *)PG_GETARG_POINTER(0);
+  StrategyNumber strategy = PG_GETARG_UINT16(1);
+  int32 nkeys = PG_GETARG_INT32(3);
+  bool *nullFlags = (bool *)PG_GETARG_POINTER(6);
+  GinTernaryValue res;
+  int32 i;
+
+  PG_RETURN_GIN_TERNARY_VALUE(GIN_TRUE);
+}
+
+PG_FUNCTION_INFO_V1(chessgame_contains_chessboard);
+Datum chessgame_contains_chessboard(PG_FUNCTION_ARGS)
+{
+  ChessGame *cg = PG_GETARG_CHESSGAME_P(0);
+  ChessBoard *cb = PG_GETARG_CHESSBOARD_P(1);
+
+  bool result = chessgameContainsChessboard(cg, cb, SCL_recordLength(cg->record));
+  PG_FREE_IF_COPY(cg, 0);
+  PG_FREE_IF_COPY(cb, 1);
+
+  PG_RETURN_BOOL(result);
+}

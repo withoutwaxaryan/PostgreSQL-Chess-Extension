@@ -118,3 +118,43 @@ CREATE FUNCTION hasOpening(chessgame, chessgame)
     RETURNS boolean
     AS 'MODULE_PATHNAME', 'hasOpening'
     LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+
+CREATE FUNCTION chessgame_compare(chessgame, chessgame)
+    RETURNS int
+    AS 'MODULE_PATHNAME', 'chessgame_compare'
+    LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION chessgame_gin_extract_value(bigint, internal)
+    RETURNS internal
+    AS 'MODULE_PATHNAME', 'chessgame_gin_extract_value'
+    LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION chessgame_gin_extract_query(bigint, internal, int2, internal, internal, internal, internal)
+    RETURNS internal
+    AS 'MODULE_PATHNAME', 'chessgame_gin_extract_query'
+    LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION chessgame_gin_triconsistent(internal, int2, bigint, int4, internal, internal, internal)
+    RETURNS char
+    AS 'MODULE_PATHNAME', 'chessgame_gin_triconsistent'
+    LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+  
+CREATE FUNCTION chessgame_contains_chessboard(chessgame, chessboard)
+    RETURNS boolean
+    AS 'MODULE_PATHNAME', 'chessgame_contains_chessboard'
+    LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE OPERATOR @> (
+  PROCEDURE = chessgame_contains_chessboard,
+  LEFTARG = chessgame, RIGHTARG = chessboard
+);
+
+  -- Create the operator class
+CREATE OPERATOR CLASS chessboard_gin_ops
+    DEFAULT FOR TYPE ChessGame USING gin AS
+    OPERATOR   7 @> (chessgame, chessboard),
+    FUNCTION   1    chessgame_compare(chessgame, chessgame),
+    FUNCTION   2    chessgame_gin_extract_value(bigint, internal),
+    FUNCTION   3    chessgame_gin_extract_query(bigint, internal, int2, internal, internal, internal, internal),
+    FUNCTION   4    chessgame_gin_triconsistent(internal, int2, bigint, int4, internal, internal, internal);
