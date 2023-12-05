@@ -219,12 +219,12 @@ bool chessgameContainsChessboard(ChessGame *cg, ChessBoard *cb, int halfMoves)
 {
   ChessBoard *temp = palloc0(sizeof(ChessBoard));
 
-  for (int i = 0; i <= halfMoves; i++)
+  for (uint16_t i = 0; i <= halfMoves; i++)
   {
-    SCL_recordApply(cg->record, temp, i); // maybe not correct way of doing it.
+    SCL_recordApply(cg->record, temp->board, i);
 
     uint32_t hash = SCL_boardHash32(temp->board);
-    if (hash == SCL_boardHash32(cb->board) == 0) // not the whole board but first part should be checked.
+    if (hash == SCL_boardHash32(cb->board))
     {
       return true;
     }
@@ -254,6 +254,36 @@ Datum hasBoard(PG_FUNCTION_ARGS)
   PG_RETURN_BOOL(result);
 }
 
+bool chessgame_contains_chessgame(ChessGame *c1, ChessGame *c2)
+{
+  // Get number of half moves of the 1st chess game
+  uint16_t length1 = SCL_recordLength(c1->record);
+
+  // Get number of half moves of the 2nd chess game
+  uint16_t length2 = SCL_recordLength(c2->record);
+
+  // Determine minimum length betwenn these two chess games
+  uint8_t minLength = (length1 < length2) ? length1 : length2;
+
+  // Check if the chessgame matches with minLength
+  for (uint16_t i = 0; i < minLength; i++)
+  {
+    uint8_t squareFrom1;
+    uint8_t squareTo1;
+    uint8_t squareFrom2;
+    uint8_t squareTo2;
+    char promotedPiece;
+    uint8_t mov1 = SCL_recordGetMove(c1->record, i, &squareFrom1, &squareTo1, &promotedPiece);
+    uint8_t mov2 = SCL_recordGetMove(c2->record, i, &squareFrom2, &squareTo2, &promotedPiece);
+
+    if (squareFrom1 != squareFrom2 || squareTo1 != squareTo2)
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
 /*
 hasOpening(chessgame, chessgame) -> bool: Returns true if the first
 chess game starts with the exact same set of moves as the second
@@ -269,38 +299,10 @@ Datum hasOpening(PG_FUNCTION_ARGS)
   ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
   ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
 
-  // new chessgame variable
-  ChessGame *cg1 = palloc0(sizeof(ChessGame));
-  SCL_recordCopy(chessgame1->record, cg1->record);
-
-  // new chessgame variable
-  ChessGame *cg2 = palloc0(sizeof(ChessGame));
-  SCL_recordCopy(chessgame2->record, cg2->record);
-
-  // Get number of half moves of the 1st chess game
-  uint16_t length1 = SCL_recordLength(cg1->record);
-
-  // Get number of half moves of the 2nd chess game
-  uint16_t length2 = SCL_recordLength(cg2->record);
-
-  // Get the string of 1st chess game truncated to opening number of half moves
-  // of the 2nd chess game
-  int shouldContinue = 1;
-  for (uint16_t i = 0; i < (length1 - length2) && shouldContinue; i++)
-  {
-    shouldContinue = SCL_recordRemoveLast(cg1->record);
-  }
-
-  // Compare the string representations of the two chess games
-  bool value = (strcmp(chessgame_to_str(cg2), chessgame_to_str(cg1)) == 0);
-
-  pfree(cg1);
-  pfree(cg2);
-
+  bool result = chessgame_contains_chessgame(chessgame1, chessgame2);
   PG_FREE_IF_COPY(chessgame1, 0);
   PG_FREE_IF_COPY(chessgame2, 1);
-
-  PG_RETURN_BOOL(value);
+  PG_RETURN_BOOL(result);
 }
 
 PG_FUNCTION_INFO_V1(chessgame_gin_extract_value);
@@ -386,11 +388,13 @@ Datum chessgame_gin_extract_query(PG_FUNCTION_ARGS)
 PG_FUNCTION_INFO_V1(chessgame_compare);
 Datum chessgame_compare(PG_FUNCTION_ARGS)
 {
-  Datum a = PG_GETARG_DATUM(0);
-  Datum b = PG_GETARG_DATUM(1);
+  ChessGame *a = PG_GETARG_CHESSGAME_P(0);
+  ChessGame *b = PG_GETARG_CHESSGAME_P(1);
 
-  int result = DatumGetInt32(SCL_recordLength(a) - SCL_recordLength(b));
+  int result = DatumGetInt32(SCL_recordLength(a->record) - SCL_recordLength(b->record));
 
+  PG_FREE_IF_COPY(a, 0);
+  PG_FREE_IF_COPY(b, 1);
   PG_RETURN_INT32(result);
 }
 

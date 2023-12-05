@@ -139,11 +139,21 @@ CREATE FUNCTION chessgame_gin_triconsistent(internal, int2, bigint, int4, intern
     RETURNS char
     AS 'MODULE_PATHNAME', 'chessgame_gin_triconsistent'
     LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+  
+CREATE FUNCTION chessgame_contains_chessboard(chessgame, chessboard)
+    RETURNS boolean
+    AS 'MODULE_PATHNAME', 'chessgame_contains_chessboard'
+    LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE OPERATOR @> (
+  PROCEDURE = chessgame_contains_chessboard,
+  LEFTARG = chessgame, RIGHTARG = chessboard
+);
 
   -- Create the operator class
 CREATE OPERATOR CLASS chessboard_gin_ops
     DEFAULT FOR TYPE ChessGame USING gin AS
-    OPERATOR   @>   chessgame_contains_chessboard(chessgame, chessboard),
+    OPERATOR   7 @> (chessgame, chessboard),
     FUNCTION   1    chessgame_compare(chessgame, chessgame),
     FUNCTION   2    chessgame_gin_extract_value(bigint, internal),
     FUNCTION   3    chessgame_gin_extract_query(bigint, internal, int2, internal, internal, internal, internal),
