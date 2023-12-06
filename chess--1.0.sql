@@ -120,81 +120,89 @@ CREATE FUNCTION hasOpening(chessgame, chessgame)
   LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
 
-  /******************************************************************************
- * Operator Functions
- ******************************************************************************/
+/******************************************************************************/
 
-CREATE FUNCTION hasOpening_lt(chessgame, chessgame)
-  RETURNS boolean
-  AS 'MODULE_PATHNAME', 'hasOpening_lt'
-  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+/* B-Tree comparison functions */
 
-CREATE FUNCTION hasOpening_le(chessgame, chessgame)
-  RETURNS boolean
-  AS 'MODULE_PATHNAME', 'hasOpening_le'
-  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
-
-  CREATE FUNCTION hasOpening_eq(chessgame, chessgame)
+CREATE OR REPLACE FUNCTION hasOpening_eq(chessgame, chessgame)
   RETURNS boolean
   AS 'MODULE_PATHNAME', 'hasOpening_eq'
   LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
-  CREATE FUNCTION hasOpening_ge(chessgame, chessgame)
+CREATE OR REPLACE FUNCTION hasOpening_lt(chessgame, chessgame)
   RETURNS boolean
-  AS 'MODULE_PATHNAME', 'hasOpening_ge'
+  AS 'MODULE_PATHNAME', 'hasOpening_lt'
   LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
-  CREATE FUNCTION hasOpening_gt(chessgame, chessgame)
+CREATE OR REPLACE FUNCTION hasOpening_le(chessgame, chessgame)
+  RETURNS boolean
+  AS 'MODULE_PATHNAME', 'hasOpening_le'
+  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION hasOpening_gt(chessgame, chessgame)
   RETURNS boolean
   AS 'MODULE_PATHNAME', 'hasOpening_gt'
   LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
--- Support Function
-CREATE FUNCTION chessgame_hasOpening_cmp(chessgame, chessgame)
-  RETURNS int4
-  AS 'MODULE_PATHNAME', 'chessgame_hasOpening_cmp'
+CREATE OR REPLACE FUNCTION hasOpening_ge(chessgame, chessgame)
+  RETURNS boolean
+  AS 'MODULE_PATHNAME', 'hasOpening_ge'
   LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
 
-  /******************************************************************************
- * Operators & Operator Class
- ******************************************************************************/
+/******************************************************************************/
 
-CREATE OPERATOR < (
-   leftarg = chessgame, rightarg = chessgame, procedure = hasOpening_lt
-
-  --TODO : commutator = > , negator = >= ,
-  --  restrict = scalarltsel, join = scalarltjoinsel
-);
-
-CREATE OPERATOR <= (
-   leftarg = chessgame, rightarg = chessgame, procedure = hasOpening_le
-  --  commutator = >=
-);
+/* B-Tree comparison operators */
 
 CREATE OPERATOR = (
-   leftarg = chessgame, rightarg = chessgame, procedure = hasOpening_eq
-  --  commutator = =
+  LEFTARG = chessgame, RIGHTARG = chessgame,
+  PROCEDURE = hasOpening_eq,
+  COMMUTATOR = =, NEGATOR = <>
 );
-
+CREATE OPERATOR < (
+  LEFTARG = chessgame, RIGHTARG = chessgame,
+  PROCEDURE = hasOpening_lt,
+  COMMUTATOR = >, NEGATOR = >=
+);
+CREATE OPERATOR <= (
+  LEFTARG = chessgame, RIGHTARG = chessgame,
+  PROCEDURE = hasOpening_le,
+  COMMUTATOR = >=, NEGATOR = >
+);
 CREATE OPERATOR >= (
-   leftarg = chessgame, rightarg = chessgame, procedure = hasOpening_ge
-  --  commutator = <=
+  LEFTARG = chessgame, RIGHTARG = chessgame,
+  PROCEDURE = hasOpening_ge,
+  COMMUTATOR = <=, NEGATOR = <
 );
-
 CREATE OPERATOR > (
-   leftarg = chessgame, rightarg = chessgame, procedure = hasOpening_gt
+  LEFTARG = chessgame, RIGHTARG = chessgame,
+  PROCEDURE = hasOpening_gt,
+  COMMUTATOR = <, NEGATOR = <=
 );
 
+/******************************************************************************/
 
-CREATE OPERATOR CLASS chessgame_hasOpening_ops
-  DEFAULT FOR TYPE chessgame USING btree AS
-      OPERATOR        1       < ,
-      OPERATOR        2       <= ,
-      OPERATOR        3       = ,
-      OPERATOR        4       >= ,
-      OPERATOR        5       > ,
-      FUNCTION        1       chessgame_hasOpening_cmp(chessgame, chessgame);
+/* B-Tree support function */
 
+CREATE OR REPLACE FUNCTION hasOpening_cmp(chessgame, chessgame)
+  RETURNS integer
+  AS 'MODULE_PATHNAME', 'hasOpening_cmp'
+  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+/******************************************************************************/
+
+/* B-Tree operator class */
+
+CREATE OPERATOR CLASS chessgame_hasopening_ops
+DEFAULT FOR TYPE chessgame USING btree
+AS
+        OPERATOR        1       <  ,
+        OPERATOR        2       <= ,
+        OPERATOR        3       =  ,
+        OPERATOR        4       >= ,
+        OPERATOR        5       >  ,
+        FUNCTION        1       hasOpening_cmp(chessgame, chessgame);
+
+/******************************************************************************/
 
   

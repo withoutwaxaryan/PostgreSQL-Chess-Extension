@@ -260,15 +260,9 @@ Datum hasBoard(PG_FUNCTION_ARGS)
   PG_RETURN_BOOL(false);
 }
 
-
-//INTERNAL FUNCTION
-static int hasOpening_cmp_internal(ChessGame *chessgame1, ChessGame *chessgame2);
 // Implementation of the internal function
-static int hasOpening_cmp_internal(ChessGame *chessgame1, ChessGame *chessgame2)
+static int hasOpening_internal(ChessGame *chessgame1, ChessGame *chessgame2)
 {
-    int result;
-    int value;
-
     // new chessgame variable
     ChessGame *cg1 = palloc0(sizeof(ChessGame));
     SCL_recordCopy(chessgame1->record, cg1->record);
@@ -277,6 +271,23 @@ static int hasOpening_cmp_internal(ChessGame *chessgame1, ChessGame *chessgame2)
     ChessGame *cg2 = palloc0(sizeof(ChessGame));
     SCL_recordCopy(chessgame2->record, cg2->record);
 
+    // Get number of half moves of the 1st chess game
+    uint16_t length1 = SCL_recordLength(cg1->record);
+
+    // Get number of half moves of the 2nd chess game
+    uint16_t length2 = SCL_recordLength(cg2->record);
+
+    // Get the string of 1st chess game truncated to opening number of half moves
+    // of the 2nd chess game
+    int shouldContinue = 1;
+    for (uint16_t i = 0; i < (length1 - length2) && shouldContinue; i++)
+    {
+      shouldContinue = SCL_recordRemoveLast(cg1->record);
+    }
+     // TODO : ADD CORRECT LOGIC HERE.
+
+    int result;
+    int value;
     // Compare the string representations of the two chess games
     value = strcmp(chessgame_to_str(cg1), chessgame_to_str(cg2));
 
@@ -299,6 +310,62 @@ static int hasOpening_cmp_internal(ChessGame *chessgame1, ChessGame *chessgame2)
     return result;
 }
 
+PG_FUNCTION_INFO_V1(hasOpening_eq);
+Datum hasOpening_eq(PG_FUNCTION_ARGS)
+{
+  ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
+  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
+  bool result = hasOpening_internal(chessgame1, chessgame2) == 0;
+  PG_FREE_IF_COPY(chessgame1, 0);
+  PG_FREE_IF_COPY(chessgame2, 1);
+  PG_RETURN_BOOL(result);
+}
+
+PG_FUNCTION_INFO_V1(hasOpening_lt);
+Datum hasOpening_lt(PG_FUNCTION_ARGS)
+{
+  ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
+  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
+  bool result = hasOpening_internal(chessgame1, chessgame2) < 0;
+  PG_FREE_IF_COPY(chessgame1, 0);
+  PG_FREE_IF_COPY(chessgame2, 1);
+  PG_RETURN_BOOL(result);
+}
+
+PG_FUNCTION_INFO_V1(hasOpening_le);
+Datum hasOpening_le(PG_FUNCTION_ARGS)
+{
+  ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
+  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
+  bool result = hasOpening_internal(chessgame1, chessgame2) <= 0;
+  PG_FREE_IF_COPY(chessgame1, 0);
+  PG_FREE_IF_COPY(chessgame2, 1);
+  PG_RETURN_BOOL(result);
+}
+
+PG_FUNCTION_INFO_V1(hasOpening_gt);
+Datum hasOpening_gt(PG_FUNCTION_ARGS)
+{
+  ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
+  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
+  bool result = hasOpening_internal(chessgame1, chessgame2) > 0;
+  PG_FREE_IF_COPY(chessgame1, 0);
+  PG_FREE_IF_COPY(chessgame2, 1);
+  PG_RETURN_BOOL(result);
+}
+
+PG_FUNCTION_INFO_V1(hasOpening_ge);
+Datum hasOpening_ge(PG_FUNCTION_ARGS)
+{
+  ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
+  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
+  bool result = hasOpening_internal(chessgame1, chessgame2) >= 0;
+  PG_FREE_IF_COPY(chessgame1, 0);
+  PG_FREE_IF_COPY(chessgame2, 1);
+  PG_RETURN_BOOL(result);
+}
+
+
 /*
 hasOpening(chessgame, chessgame) -> bool: Returns true if the first
 chess game starts with the exact same set of moves as the second
@@ -310,106 +377,23 @@ which can be of any length, i.e., m half-moves.
 PG_FUNCTION_INFO_V1(hasOpening);
 Datum hasOpening(PG_FUNCTION_ARGS)
 {
-  // Get chessgames from arguments
   ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
   ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
-
-  // new chessgame variable
-  ChessGame *cg1 = palloc0(sizeof(ChessGame));
-  SCL_recordCopy(chessgame1->record, cg1->record);
-
-  // new chessgame variable
-  ChessGame *cg2 = palloc0(sizeof(ChessGame));
-  SCL_recordCopy(chessgame2->record, cg2->record);
-
-  // Get number of half moves of the 1st chess game
-  uint16_t length1 = SCL_recordLength(cg1->record);
-
-  // Get number of half moves of the 2nd chess game
-  uint16_t length2 = SCL_recordLength(cg2->record);
-
-  // Get the string of 1st chess game truncated to opening number of half moves
-  // of the 2nd chess game
-  int shouldContinue = 1;
-  for (uint16_t i = 0; i < (length1 - length2) && shouldContinue; i++)
-  {
-    shouldContinue = SCL_recordRemoveLast(cg1->record);
-  }
-
-  // Compare the string representations of the two chess games
-  bool value = (strcmp(chessgame_to_str(cg1), chessgame_to_str(cg2)) == 0);
-
-  pfree(cg1);
-  pfree(cg2);
-
+  bool result = hasOpening_internal(chessgame1, chessgame2) == 0;
   PG_FREE_IF_COPY(chessgame1, 0);
   PG_FREE_IF_COPY(chessgame2, 1);
-
-  PG_RETURN_BOOL(value);
-
+  PG_RETURN_BOOL(result);
 }
+/*****************************************************************************/
 
- /******************************************************************************
- * B-Tree related functions
- ******************************************************************************/
-
-PG_FUNCTION_INFO_V1(hasOpening_lt);
-Datum hasOpening_lt(PG_FUNCTION_ARGS)
+PG_FUNCTION_INFO_V1(hasOpening_cmp);
+Datum hasOpening_cmp(PG_FUNCTION_ARGS)
 {
-	ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
+  ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
   ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
-
-	PG_RETURN_BOOL(hasOpening_cmp_internal(chessgame1, chessgame2) < 0);
+  int result = hasOpening_internal(chessgame1, chessgame2);
+  PG_FREE_IF_COPY(chessgame1, 0);
+  PG_FREE_IF_COPY(chessgame2, 1);
+  PG_RETURN_INT32(result);
 }
 
-PG_FUNCTION_INFO_V1(hasOpening_le);
-Datum hasOpening_le(PG_FUNCTION_ARGS)
-{
-	ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
-  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
-
-	PG_RETURN_BOOL(hasOpening_cmp_internal(chessgame1, chessgame2) <= 0);
-}
-
-PG_FUNCTION_INFO_V1(hasOpening_eq);
-Datum hasOpening_eq(PG_FUNCTION_ARGS)
-{
-	ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
-  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
-
-	PG_RETURN_BOOL(hasOpening_cmp_internal(chessgame1, chessgame2) == 0);
-}
-
-PG_FUNCTION_INFO_V1(hasOpening_ge);
-Datum hasOpening_ge(PG_FUNCTION_ARGS)
-{
-	ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
-  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
-
-	PG_RETURN_BOOL(hasOpening_cmp_internal(chessgame1, chessgame2) >= 0);
-}
-
-PG_FUNCTION_INFO_V1(hasOpening_gt);
-Datum hasOpening_gt(PG_FUNCTION_ARGS)
-{
-	ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
-  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
-
-	PG_RETURN_BOOL(hasOpening_cmp_internal(chessgame1, chessgame2) > 0);
-}
-
-
-PG_FUNCTION_INFO_V1(chessgame_hasOpening_cmp);
-Datum chessgame_hasOpening_cmp(PG_FUNCTION_ARGS)
-{
-    int result;
-    ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
-    ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
-
-    result = hasOpening_cmp_internal(chessgame1, chessgame2);
-
-    PG_FREE_IF_COPY(chessgame1, 0);
-    PG_FREE_IF_COPY(chessgame2, 1);
-
-    PG_RETURN_INT32(result);
-}
