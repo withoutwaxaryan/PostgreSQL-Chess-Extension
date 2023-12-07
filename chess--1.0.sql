@@ -114,10 +114,15 @@ CREATE FUNCTION hasBoard(chessgame, chessboard, integer)
   LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
 
-CREATE FUNCTION hasOpening(chessgame, chessgame)
+CREATE FUNCTION hasOpening(game1 chessgame, game2 chessgame)
   RETURNS boolean
-  AS 'MODULE_PATHNAME', 'hasOpening'
-  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+  AS $$
+  BEGIN
+    -- RAISE notice 'hello';
+    return hasOpening_cmp(game1, game2) = 0;
+  END
+  $$
+  LANGUAGE PLPGSQL;
 
 
 /******************************************************************************/

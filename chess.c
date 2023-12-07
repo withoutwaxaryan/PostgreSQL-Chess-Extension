@@ -266,33 +266,23 @@ static int hasOpening_internal(ChessGame *chessgame1, ChessGame *chessgame2)
 
   int result;
   int value;
-  // new chessgame variable
-  ChessGame *cg1 = palloc0(sizeof(ChessGame));
-  SCL_recordCopy(chessgame1->record, cg1->record);
-
-  // new chessgame variable
-  ChessGame *cg2 = palloc0(sizeof(ChessGame));
-  SCL_recordCopy(chessgame2->record, cg2->record);
 
   // Get number of half moves of the 1st chess game
-  uint16_t length1 = SCL_recordLength(cg1->record);
+  uint16_t length1 = SCL_recordLength(chessgame1->record);
 
   // Get number of half moves of the 2nd chess game
-  uint16_t length2 = SCL_recordLength(cg2->record);
-
-  // Determine minimum length betwenn these two chess games
-  uint8_t minLength = (length1 < length2) ? length1 : length2;
+  uint16_t length2 = SCL_recordLength(chessgame2->record);
 
     // Check if the chessgame matches with minLength
-  for (uint16_t i = 0; i < minLength; i++)
+  for (uint16_t i = 0; i < length2; i++)
   {
     uint8_t squareFrom1;
     uint8_t squareTo1;
     uint8_t squareFrom2;
     uint8_t squareTo2;
     char promotedPiece;
-    uint8_t mov1 = SCL_recordGetMove(cg1->record, i, &squareFrom1, &squareTo1, &promotedPiece);
-    uint8_t mov2 = SCL_recordGetMove(cg2->record, i, &squareFrom2, &squareTo2, &promotedPiece);
+    uint8_t mov1 = SCL_recordGetMove(chessgame1->record, i, &squareFrom1, &squareTo1, &promotedPiece);
+    uint8_t mov2 = SCL_recordGetMove(chessgame2->record, i, &squareFrom2, &squareTo2, &promotedPiece);
 
     if(squareFrom1 < squareFrom2)
     {
@@ -312,9 +302,11 @@ static int hasOpening_internal(ChessGame *chessgame1, ChessGame *chessgame2)
       {
         return 1;
       }
-      continue;
 
     }
+  }
+  if (length2 > length1){
+    return -1;
   }
   return 0;
 
@@ -325,7 +317,8 @@ Datum hasOpening_eq(PG_FUNCTION_ARGS)
 {
   ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
   ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
-  bool result = hasOpening_internal(chessgame1, chessgame2) == 0;
+  bool result = hasOpening_internal(chessgame1, chessgame2) == 0 &&
+   SCL_recordLength(chessgame1->record) == SCL_recordLength(chessgame2->record);
   PG_FREE_IF_COPY(chessgame1, 0);
   PG_FREE_IF_COPY(chessgame2, 1);
   PG_RETURN_BOOL(result);
@@ -389,7 +382,7 @@ Datum hasOpening(PG_FUNCTION_ARGS)
 {
   ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
   ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
-  bool result = hasOpening_internal(chessgame1, chessgame2) == 0;
+  bool result = hasOpening_internal(chessgame1, chessgame2) ;
   PG_FREE_IF_COPY(chessgame1, 0);
   PG_FREE_IF_COPY(chessgame2, 1);
   PG_RETURN_BOOL(result);
