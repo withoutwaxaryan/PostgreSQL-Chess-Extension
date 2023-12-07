@@ -108,11 +108,6 @@ CREATE FUNCTION getFirstMoves(chessgame, integer)
   AS 'MODULE_PATHNAME', 'getFirstMoves'
   LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
-CREATE FUNCTION hasBoard(chessgame, chessboard, integer)
-  RETURNS boolean
-  AS 'MODULE_PATHNAME', 'hasBoard'
-  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
-
 
 CREATE FUNCTION hasOpening(chessgame, chessgame)
     RETURNS boolean
@@ -149,6 +144,14 @@ CREATE OPERATOR @> (
   PROCEDURE = chessgame_contains_chessboard,
   LEFTARG = chessgame, RIGHTARG = chessboard
 );
+
+CREATE FUNCTION hasBoard(cg chessgame, cb chessboard, i integer)
+  RETURNS boolean
+  AS 
+$$
+    SELECT cg @> cb and getFirstMoves(cg, i) @> cb;
+$$
+ LANGUAGE SQL;
 
   -- Create the operator class
 CREATE OPERATOR CLASS chessboard_gin_ops

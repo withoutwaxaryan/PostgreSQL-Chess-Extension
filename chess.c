@@ -232,28 +232,6 @@ bool chessgameContainsChessboard(ChessGame *cg, ChessBoard *cb, int halfMoves)
   return false;
 }
 
-/*
-hasBoard(chessgame, chessboard, integer) -> bool: Returns true if
-the chessgame contains the given board state in its first N
-half-moves. Only compare the state of the pieces and not compare
-the move count, castling right, en passant pieces, ...
-
-*/
-
-PG_FUNCTION_INFO_V1(hasBoard);
-Datum hasBoard(PG_FUNCTION_ARGS)
-{
-  ChessGame *cg = PG_GETARG_CHESSGAME_P(0);
-  ChessBoard *cb = PG_GETARG_CHESSBOARD_P(1);
-  int halfMove = PG_GETARG_INT32(2);
-
-  bool result = chessgameContainsChessboard(cg, cb, halfMove);
-  PG_FREE_IF_COPY(cg, 0);
-  PG_FREE_IF_COPY(cb, 1);
-
-  PG_RETURN_BOOL(result);
-}
-
 bool chessgame_contains_chessgame(ChessGame *c1, ChessGame *c2)
 {
   // Get number of half moves of the 1st chess game
@@ -262,11 +240,13 @@ bool chessgame_contains_chessgame(ChessGame *c1, ChessGame *c2)
   // Get number of half moves of the 2nd chess game
   uint16_t length2 = SCL_recordLength(c2->record);
 
-  // Determine minimum length betwenn these two chess games
-  uint8_t minLength = (length1 < length2) ? length1 : length2;
+  if (length2 > length1)
+  {
+    return false;
+  }
 
   // Check if the chessgame matches with minLength
-  for (uint16_t i = 0; i < minLength; i++)
+  for (uint16_t i = 0; i < length2; i++)
   {
     uint8_t squareFrom1;
     uint8_t squareTo1;
@@ -408,7 +388,33 @@ Datum chessgame_gin_triconsistent(PG_FUNCTION_ARGS)
   GinTernaryValue res;
   int32 i;
 
-  PG_RETURN_GIN_TERNARY_VALUE(GIN_TRUE);
+  switch (strategy)
+  {
+  case RTContainsStrategyNumber:
+    res = GIN_FALSE;
+    for (i = 0; i < nkeys; i++)
+    {
+      if (!nullFlags[i])
+      {
+        if (check[i] == GIN_TRUE)
+        {
+          res = GIN_TRUE;
+          break;
+        }
+        else if (check[i] == GIN_MAYBE && res == GIN_FALSE)
+        {
+          res = GIN_MAYBE;
+        }
+      }
+    }
+    break;
+  default:
+    elog(ERROR, "chessgame_gin_triconsistent: unknown strategy number: %d",
+         strategy);
+    res = GIN_FALSE;
+  }
+
+  PG_RETURN_GIN_TERNARY_VALUE(res);
 }
 
 PG_FUNCTION_INFO_V1(chessgame_contains_chessboard);
