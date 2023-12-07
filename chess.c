@@ -263,51 +263,61 @@ Datum hasBoard(PG_FUNCTION_ARGS)
 // Implementation of the internal function
 static int hasOpening_internal(ChessGame *chessgame1, ChessGame *chessgame2)
 {
-    // new chessgame variable
-    ChessGame *cg1 = palloc0(sizeof(ChessGame));
-    SCL_recordCopy(chessgame1->record, cg1->record);
 
-    // new chessgame variable
-    ChessGame *cg2 = palloc0(sizeof(ChessGame));
-    SCL_recordCopy(chessgame2->record, cg2->record);
+  int result;
+  int value;
+  // new chessgame variable
+  ChessGame *cg1 = palloc0(sizeof(ChessGame));
+  SCL_recordCopy(chessgame1->record, cg1->record);
 
-    // Get number of half moves of the 1st chess game
-    uint16_t length1 = SCL_recordLength(cg1->record);
+  // new chessgame variable
+  ChessGame *cg2 = palloc0(sizeof(ChessGame));
+  SCL_recordCopy(chessgame2->record, cg2->record);
 
-    // Get number of half moves of the 2nd chess game
-    uint16_t length2 = SCL_recordLength(cg2->record);
+  // Get number of half moves of the 1st chess game
+  uint16_t length1 = SCL_recordLength(cg1->record);
 
-    // Get the string of 1st chess game truncated to opening number of half moves
-    // of the 2nd chess game
-    int shouldContinue = 1;
-    for (uint16_t i = 0; i < (length1 - length2) && shouldContinue; i++)
+  // Get number of half moves of the 2nd chess game
+  uint16_t length2 = SCL_recordLength(cg2->record);
+
+  // Determine minimum length betwenn these two chess games
+  uint8_t minLength = (length1 < length2) ? length1 : length2;
+
+    // Check if the chessgame matches with minLength
+  for (uint16_t i = 0; i < minLength; i++)
+  {
+    uint8_t squareFrom1;
+    uint8_t squareTo1;
+    uint8_t squareFrom2;
+    uint8_t squareTo2;
+    char promotedPiece;
+    uint8_t mov1 = SCL_recordGetMove(cg1->record, i, &squareFrom1, &squareTo1, &promotedPiece);
+    uint8_t mov2 = SCL_recordGetMove(cg2->record, i, &squareFrom2, &squareTo2, &promotedPiece);
+
+    if(squareFrom1 < squareFrom2)
     {
-      shouldContinue = SCL_recordRemoveLast(cg1->record);
+      return -1;
     }
-     // TODO : ADD CORRECT LOGIC HERE.
-
-    int result;
-    int value;
-    // Compare the string representations of the two chess games
-    value = strcmp(chessgame_to_str(cg1), chessgame_to_str(cg2));
-
-    if (value < 0)
+    else if (squareFrom1 > squareFrom2)
     {
-       result = -1;
+      return 1;
     }
-    else if (value == 0)
+    else
     {
-       result = 0;
-    }
-    else if (value > 0)
-    {
-      result = 1;
-    }
+      if (squareTo1 < squareTo2)
+      {
+          return -1;
+      }
+      else if (squareTo1 > squareTo2)
+      {
+        return 1;
+      }
+      continue;
 
-    pfree(cg1);
-    pfree(cg2);
-    
-    return result;
+    }
+  }
+  return 0;
+
 }
 
 PG_FUNCTION_INFO_V1(hasOpening_eq);
