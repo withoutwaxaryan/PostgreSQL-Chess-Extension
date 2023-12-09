@@ -264,17 +264,16 @@ Datum hasBoard(PG_FUNCTION_ARGS)
 static int hasOpening_internal(ChessGame *chessgame1, ChessGame *chessgame2)
 {
 
-  int result;
-  int value;
-
   // Get number of half moves of the 1st chess game
   uint16_t length1 = SCL_recordLength(chessgame1->record);
 
   // Get number of half moves of the 2nd chess game
   uint16_t length2 = SCL_recordLength(chessgame2->record);
 
+  uint8_t minLength = (length1 < length2) ? length1 : length2;
+
     // Check if the chessgame matches with minLength
-  for (uint16_t i = 0; i < length2; i++)
+  for (uint16_t i = 0; i < minLength; i++)
   {
     uint8_t squareFrom1;
     uint8_t squareTo1;
@@ -305,9 +304,10 @@ static int hasOpening_internal(ChessGame *chessgame1, ChessGame *chessgame2)
 
     }
   }
-  if (length2 > length1){
-    return -1;
-  }
+  // if (length2 > length1){
+  //   return -1;
+  // }
+
   return 0;
 
 }
@@ -317,8 +317,8 @@ Datum hasOpening_eq(PG_FUNCTION_ARGS)
 {
   ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
   ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
-  bool result = hasOpening_internal(chessgame1, chessgame2) == 0 &&
-   SCL_recordLength(chessgame1->record) == SCL_recordLength(chessgame2->record);
+  bool result = hasOpening_internal(chessgame1, chessgame2) == 0
+  && SCL_recordLength(chessgame1->record) == SCL_recordLength(chessgame2->record);
   PG_FREE_IF_COPY(chessgame1, 0);
   PG_FREE_IF_COPY(chessgame2, 1);
   PG_RETURN_BOOL(result);
@@ -377,16 +377,16 @@ should only contain the opening moves that we want to check for,
 which can be of any length, i.e., m half-moves.
 */
 
-PG_FUNCTION_INFO_V1(hasOpening);
-Datum hasOpening(PG_FUNCTION_ARGS)
-{
-  ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
-  ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
-  bool result = hasOpening_internal(chessgame1, chessgame2) ;
-  PG_FREE_IF_COPY(chessgame1, 0);
-  PG_FREE_IF_COPY(chessgame2, 1);
-  PG_RETURN_BOOL(result);
-}
+// PG_FUNCTION_INFO_V1(hasOpening);
+// Datum hasOpening(PG_FUNCTION_ARGS)
+// {
+//   ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
+//   ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
+//   bool result = hasOpening_internal(chessgame1, chessgame2)==0;
+//   PG_FREE_IF_COPY(chessgame1, 0);
+//   PG_FREE_IF_COPY(chessgame2, 1);
+//   PG_RETURN_BOOL(result);
+// }
 /*****************************************************************************/
 
 PG_FUNCTION_INFO_V1(hasOpening_cmp);

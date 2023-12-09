@@ -117,13 +117,9 @@ CREATE FUNCTION hasBoard(chessgame, chessboard, integer)
 CREATE FUNCTION hasOpening(game1 chessgame, game2 chessgame)
   RETURNS boolean
   AS $$
-  BEGIN
-    -- RAISE notice 'hello';
-    return hasOpening_cmp(game1, game2) = 0;
-  END
+    select hasOpening_cmp(game1, game2) = 0; 
   $$
-  LANGUAGE PLPGSQL;
-
+  LANGUAGE SQL;
 
 /******************************************************************************/
 
@@ -209,5 +205,9 @@ AS
         FUNCTION        1       hasOpening_cmp(chessgame, chessgame);
 
 /******************************************************************************/
+
+
+-- CREATE INDEX name ON table USING gin(column);
+-- select * from new where hasBoard(c, 'FEN from wikipedia', 10);
 
   
