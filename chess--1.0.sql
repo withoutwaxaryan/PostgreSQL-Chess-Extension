@@ -157,7 +157,7 @@ $$
 CREATE OPERATOR CLASS chessboard_gin_ops
     DEFAULT FOR TYPE ChessGame USING gin AS
     OPERATOR   7 @> (chessgame, chessboard),
-    FUNCTION   1    chessgame_compare(chessgame, chessgame),
+    FUNCTION   1    chessgame_compare(chessboard, chessboard),
     FUNCTION   2    chessgame_gin_extract_value(bigint, internal),
     FUNCTION   3    chessgame_gin_extract_query(bigint, internal, int2, internal, internal, internal, internal),
     FUNCTION   4    chessgame_gin_triconsistent(internal, int2, bigint, int4, internal, internal, internal);
