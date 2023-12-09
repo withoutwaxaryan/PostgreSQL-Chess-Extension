@@ -368,10 +368,10 @@ Datum chessgame_gin_extract_query(PG_FUNCTION_ARGS)
 PG_FUNCTION_INFO_V1(chessgame_compare);
 Datum chessgame_compare(PG_FUNCTION_ARGS)
 {
-  ChessGame *a = PG_GETARG_CHESSGAME_P(0);
-  ChessGame *b = PG_GETARG_CHESSGAME_P(1);
+  ChessBoard *a = PG_GETARG_CHESSBOARD_P(0);
+  ChessBoard *b = PG_GETARG_CHESSBOARD_P(1);
 
-  int result = DatumGetInt32(SCL_recordLength(a->record) - SCL_recordLength(b->record));
+  int result = DatumGetInt32(SCL_boardEvaluateStatic(a->board) - SCL_boardEvaluateStatic(b->board));
 
   PG_FREE_IF_COPY(a, 0);
   PG_FREE_IF_COPY(b, 1);
@@ -381,40 +381,7 @@ Datum chessgame_compare(PG_FUNCTION_ARGS)
 PG_FUNCTION_INFO_V1(chessgame_gin_triconsistent);
 Datum chessgame_gin_triconsistent(PG_FUNCTION_ARGS)
 {
-  GinTernaryValue *check = (GinTernaryValue *)PG_GETARG_POINTER(0);
-  StrategyNumber strategy = PG_GETARG_UINT16(1);
-  int32 nkeys = PG_GETARG_INT32(3);
-  bool *nullFlags = (bool *)PG_GETARG_POINTER(6);
-  GinTernaryValue res;
-  int32 i;
-
-  switch (strategy)
-  {
-  case RTContainsStrategyNumber:
-    res = GIN_FALSE;
-    for (i = 0; i < nkeys; i++)
-    {
-      if (!nullFlags[i])
-      {
-        if (check[i] == GIN_TRUE)
-        {
-          res = GIN_TRUE;
-          break;
-        }
-        else if (check[i] == GIN_MAYBE && res == GIN_FALSE)
-        {
-          res = GIN_MAYBE;
-        }
-      }
-    }
-    break;
-  default:
-    elog(ERROR, "chessgame_gin_triconsistent: unknown strategy number: %d",
-         strategy);
-    res = GIN_FALSE;
-  }
-
-  PG_RETURN_GIN_TERNARY_VALUE(res);
+  PG_RETURN_GIN_TERNARY_VALUE(GIN_TRUE);
 }
 
 PG_FUNCTION_INFO_V1(chessgame_contains_chessboard);
