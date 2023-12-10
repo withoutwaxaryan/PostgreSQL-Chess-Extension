@@ -161,7 +161,8 @@ CREATE OPERATOR CLASS chessboard_gin_ops
 CREATE FUNCTION hasOpening(game1 chessgame, game2 chessgame)
   RETURNS boolean
   AS $$
-    select hasOpening_cmp(game1, game2) = 0; 
+    -- select hasOpening_cmp(game1, game2) = 0; 
+    select game1 >= game2 AND game1 <= game2;
   $$
   LANGUAGE SQL;
 
