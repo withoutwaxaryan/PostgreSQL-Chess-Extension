@@ -128,11 +128,18 @@ CREATE FUNCTION chessgame_gin_triconsistent(internal, int2, bigint, int4, intern
     RETURNS char
     AS 'MODULE_PATHNAME', 'chessgame_gin_triconsistent'
     LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
-  
+
+CREATE FUNCTION chessgameContainsChessgame(chessgame, chessgame)
+    RETURNS boolean
+    AS 'MODULE_PATHNAME', 'chessgameContainsChessgame'
+    LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
 CREATE FUNCTION chessgame_contains_chessboard(chessgame, chessboard)
     RETURNS boolean
     AS 'MODULE_PATHNAME', 'chessgame_contains_chessboard'
     LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+
 
 CREATE OPERATOR @> (
   PROCEDURE = chessgame_contains_chessboard,
@@ -162,7 +169,7 @@ CREATE FUNCTION hasOpening(game1 chessgame, game2 chessgame)
   RETURNS boolean
   AS $$
     -- select hasOpening_cmp(game1, game2) = 0; 
-    select game1 >= game2 AND game1 <= game2;
+    select game1 >= game2 AND chessgameContainsChessgame(game1, game2);
   $$
   LANGUAGE SQL;
 

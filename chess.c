@@ -244,7 +244,6 @@ bool chessgame_contains_chessgame(ChessGame *c1, ChessGame *c2)
   {
     return false;
   }
-
   // Check if the chessgame matches with minLength
   for (uint16_t i = 0; i < length2; i++)
   {
@@ -255,8 +254,7 @@ bool chessgame_contains_chessgame(ChessGame *c1, ChessGame *c2)
     char promotedPiece;
     uint8_t mov1 = SCL_recordGetMove(c1->record, i, &squareFrom1, &squareTo1, &promotedPiece);
     uint8_t mov2 = SCL_recordGetMove(c2->record, i, &squareFrom2, &squareTo2, &promotedPiece);
-
-    if (squareFrom1 != squareFrom2 || squareTo1 != squareTo2)
+    if ((squareFrom1 != squareFrom2) || (squareTo1 != squareTo2))
     {
       return false;
     }
@@ -264,6 +262,14 @@ bool chessgame_contains_chessgame(ChessGame *c1, ChessGame *c2)
   return true;
 }
 
+PG_FUNCTION_INFO_V1(chessgameContainsChessgame);
+Datum chessgameContainsChessgame(PG_FUNCTION_ARGS)
+{
+  ChessGame *c1 = PG_GETARG_CHESSGAME_P(0);
+  ChessGame *c2 = PG_GETARG_CHESSGAME_P(1);
+  bool result = chessgame_contains_chessgame(c1, c2);
+  PG_RETURN_BOOL(result);
+}
 
 PG_FUNCTION_INFO_V1(chessgame_gin_extract_value);
 Datum chessgame_gin_extract_value(PG_FUNCTION_ARGS)
@@ -393,7 +399,6 @@ Datum chessgame_contains_chessboard(PG_FUNCTION_ARGS)
   PG_RETURN_BOOL(result);
 }
 
-
 /******************************************************************************************/
 // Implementation of the internal function
 static int hasOpening_internal(ChessGame *chessgame1, ChessGame *chessgame2)
@@ -405,37 +410,9 @@ static int hasOpening_internal(ChessGame *chessgame1, ChessGame *chessgame2)
   // Get number of half moves of the 2nd chess game
   uint16_t length2 = SCL_recordLength(chessgame2->record);
 
-  for (uint16_t i = 0; i < length2; i++)
-  {
-    uint8_t squareFrom1;
-    uint8_t squareTo1;
-    uint8_t squareFrom2;
-    uint8_t squareTo2;
-    char promotedPiece;
-    uint8_t mov1 = SCL_recordGetMove(chessgame1->record, i, &squareFrom1, &squareTo1, &promotedPiece);
-    uint8_t mov2 = SCL_recordGetMove(chessgame2->record, i, &squareFrom2, &squareTo2, &promotedPiece);
+  // :(
 
-    if(squareFrom1 < squareFrom2)
-    {
-      return -1;
-    }
-    else if (squareFrom1 > squareFrom2)
-    {
-      return 1;
-    }
-    else
-    {
-      if (squareTo1 < squareTo2)
-      {
-          return -1;
-      }
-      else if (squareTo1 > squareTo2)
-      {
-        return 1;
-      }
-    }
-  }
-  return 0;
+  return length1 - length2;
 }
 
 PG_FUNCTION_INFO_V1(hasOpening_eq);
@@ -443,8 +420,7 @@ Datum hasOpening_eq(PG_FUNCTION_ARGS)
 {
   ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
   ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
-  bool result = hasOpening_internal(chessgame1, chessgame2) == 0
-  && SCL_recordLength(chessgame1->record) == SCL_recordLength(chessgame2->record);
+  bool result = hasOpening_internal(chessgame1, chessgame2) == 0;
   PG_FREE_IF_COPY(chessgame1, 0);
   PG_FREE_IF_COPY(chessgame2, 1);
   PG_RETURN_BOOL(result);
