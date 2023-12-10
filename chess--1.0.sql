@@ -115,7 +115,7 @@ CREATE FUNCTION hasOpening(chessgame, chessgame)
     LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
 
-CREATE FUNCTION chessgame_compare(chessgame, chessgame)
+CREATE FUNCTION chessgame_compare(chessboard, chessboard)
     RETURNS int
     AS 'MODULE_PATHNAME', 'chessgame_compare'
     LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
