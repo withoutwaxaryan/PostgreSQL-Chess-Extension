@@ -405,10 +405,7 @@ static int hasOpening_internal(ChessGame *chessgame1, ChessGame *chessgame2)
   // Get number of half moves of the 2nd chess game
   uint16_t length2 = SCL_recordLength(chessgame2->record);
 
-  uint8_t minLength = (length1 < length2) ? length1 : length2;
-
-    // Check if the chessgame matches with minLength
-  for (uint16_t i = 0; i < minLength; i++)
+  for (uint16_t i = 0; i < length2; i++)
   {
     uint8_t squareFrom1;
     uint8_t squareTo1;
@@ -436,15 +433,9 @@ static int hasOpening_internal(ChessGame *chessgame1, ChessGame *chessgame2)
       {
         return 1;
       }
-
     }
   }
-  // if (length2 > length1){
-  //   return -1;
-  // }
-
   return 0;
-
 }
 
 PG_FUNCTION_INFO_V1(hasOpening_eq);
