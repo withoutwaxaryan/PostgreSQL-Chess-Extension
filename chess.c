@@ -443,8 +443,8 @@ Datum hasOpening_eq(PG_FUNCTION_ARGS)
 {
   ChessGame *chessgame1 = PG_GETARG_CHESSGAME_P(0);
   ChessGame *chessgame2 = PG_GETARG_CHESSGAME_P(1);
-  bool result = hasOpening_internal(chessgame1, chessgame2) == 0
-  && SCL_recordLength(chessgame1->record) == SCL_recordLength(chessgame2->record);
+  bool result = hasOpening_internal(chessgame1, chessgame2);
+  //&& SCL_recordLength(chessgame1->record) == SCL_recordLength(chessgame2->record);
   PG_FREE_IF_COPY(chessgame1, 0);
   PG_FREE_IF_COPY(chessgame2, 1);
   PG_RETURN_BOOL(result);
