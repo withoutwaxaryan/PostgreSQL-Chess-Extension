@@ -182,7 +182,7 @@ Datum getBoard(PG_FUNCTION_ARGS)
 
   ChessBoard *cb = palloc0(sizeof(ChessBoard));
 
-  SCL_recordApply(cg->record, cb, halfMove);
+  SCL_recordApply(cg->record, cb->board, halfMove);
 
   PG_FREE_IF_COPY(cg, 0);
 
@@ -365,17 +365,33 @@ Datum chessgame_gin_extract_query(PG_FUNCTION_ARGS)
   PG_RETURN_NULL();
 }
 
+int evaluateBoard(SCL_Board board)
+{
+  const char *p = board;
+  int total = 0;
+  for (uint8_t i = 0; i < SCL_BOARD_SQUARES; ++i, ++p)
+  {
+    char s = *p;
+
+    if (s != '.')
+    {
+      total += SCL_pieceValue(s);
+    }
+  }
+  return total;
+}
+
 PG_FUNCTION_INFO_V1(chessgame_compare);
 Datum chessgame_compare(PG_FUNCTION_ARGS)
 {
   ChessBoard *a = PG_GETARG_CHESSBOARD_P(0);
   ChessBoard *b = PG_GETARG_CHESSBOARD_P(1);
 
-  int result = DatumGetInt32(SCL_boardEvaluateStatic(a->board) - SCL_boardEvaluateStatic(b->board));
+  int16_t result = evaluateBoard(a->board) - evaluateBoard(b->board);
 
   PG_FREE_IF_COPY(a, 0);
   PG_FREE_IF_COPY(b, 1);
-  PG_RETURN_INT32(result);
+  PG_RETURN_INT16(result);
 }
 
 PG_FUNCTION_INFO_V1(chessgame_gin_triconsistent);
